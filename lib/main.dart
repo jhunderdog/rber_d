@@ -24,6 +24,9 @@ DatabaseReference usersRef =
 DatabaseReference driversRef =
     FirebaseDatabase.instance.reference().child("drivers");
 
+DatabaseReference newRequestsRef =
+    FirebaseDatabase.instance.reference().child("ride Requests");
+
 DatabaseReference rideRequestRef = FirebaseDatabase.instance
     .reference()
     .child("drivers")
