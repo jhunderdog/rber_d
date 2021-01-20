@@ -1,4 +1,5 @@
 import 'package:drivers_app/Models/rideDetails.dart';
+import 'package:drivers_app/Notifications/notificationDialog.dart';
 import 'package:drivers_app/configMaps.dart';
 import 'package:drivers_app/main.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -10,16 +11,16 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PushNotificationService {
   final FirebaseMessaging firebaseMessaging = FirebaseMessaging();
-  Future initialize() async {
+  Future initialize(context) async {
     firebaseMessaging.configure(
       onMessage: (Map<String, dynamic> message) async {
-        retrieveRideRequestInfo(getRideRequestId(message));
+        retrieveRideRequestInfo(getRideRequestId(message), context);
       },
       onLaunch: (Map<String, dynamic> message) async {
-        retrieveRideRequestInfo(getRideRequestId(message));
+        retrieveRideRequestInfo(getRideRequestId(message), context);
       },
       onResume: (Map<String, dynamic> message) async {
-        retrieveRideRequestInfo(getRideRequestId(message));
+        retrieveRideRequestInfo(getRideRequestId(message), context);
       },
     );
   }
@@ -47,7 +48,7 @@ class PushNotificationService {
     return rideRequestId;
   }
 
-  void retrieveRideRequestInfo(String rideRequestId) {
+  void retrieveRideRequestInfo(String rideRequestId, BuildContext context) {
     newRequestsRef
         .child(rideRequestId)
         .once()
@@ -78,6 +79,14 @@ class PushNotificationService {
         print("Information ::");
         print(rideDetails.pickup_address);
         print(rideDetails.dropoff_address);
+
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => NotificationDialog(
+            rideDetails: rideDetails,
+          ),
+        );
       }
     });
   }

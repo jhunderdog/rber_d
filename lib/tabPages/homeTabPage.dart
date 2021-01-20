@@ -52,7 +52,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
   void getCurrentDriverInfo() async {
     currentfirebaseUser = await FirebaseAuth.instance.currentUser;
     PushNotificationService pushNotificationService = PushNotificationService();
-    pushNotificationService.initialize();
+    pushNotificationService.initialize(context);
     pushNotificationService.getToken();
   }
 
