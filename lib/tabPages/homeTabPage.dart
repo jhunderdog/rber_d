@@ -23,8 +23,6 @@ class _HomeTabPageState extends State<HomeTabPage> {
 
   GoogleMapController newGoogleMapController;
 
-  Position currentPosition;
-
   var geoLocator = Geolocator();
 
   String driverStatusText = "Offline Now - Go Online";

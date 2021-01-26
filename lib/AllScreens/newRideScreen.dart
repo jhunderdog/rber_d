@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import 'package:drivers_app/AllWidgets/progressDialog.dart';
+import 'package:drivers_app/Assistants/assistantMethods.dart';
 import 'package:drivers_app/Models/rideDetails.dart';
+import 'package:drivers_app/configMaps.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class NewRideScreen extends StatefulWidget {
@@ -19,6 +23,12 @@ class NewRideScreen extends StatefulWidget {
 class _NewRideScreenState extends State<NewRideScreen> {
   Completer<GoogleMapController> _controllerGoogleMap = Completer();
   GoogleMapController newRideGoogleMapController;
+  Set<Marker> markersSet = Set<Marker>();
+  Set<Circle> circleSet = Set<Circle>();
+  Set<Polyline> polyLineSet = Set<Polyline>();
+  List<LatLng> polylineCorOrdinates = [];
+  PolylinePoints polylinePoints = PolylinePoints();
+  double mapPaddingFromBottom = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +36,25 @@ class _NewRideScreenState extends State<NewRideScreen> {
       body: Stack(
         children: [
           GoogleMap(
+            padding: EdgeInsets.only(bottom: mapPaddingFromBottom),
             mapType: MapType.normal,
             myLocationButtonEnabled: true,
             initialCameraPosition: NewRideScreen._kGooglePlex,
             myLocationEnabled: true,
-            onMapCreated: (GoogleMapController controller) {
+            markers: markersSet,
+            circles: circleSet,
+            polylines: polyLineSet,
+            onMapCreated: (GoogleMapController controller) async {
               _controllerGoogleMap.complete(controller);
               newRideGoogleMapController = controller;
+              setState(() {
+                mapPaddingFromBottom = 265.0;
+              });
+              var currentLatLng =
+                  LatLng(currentPosition.latitude, currentPosition.longitude);
+              var pickUpLatLng = widget.rideDetails.pickup;
+
+              await getPlaceDirection(currentLatLng, pickUpLatLng);
             },
           ),
           Positioned(
@@ -157,5 +179,107 @@ class _NewRideScreenState extends State<NewRideScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> getPlaceDirection(
+      LatLng pickUpLatLng, LatLng dropOffLatLng) async {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => ProgressDialog(
+              message: "Please wait...",
+            ));
+    var details = await AssistantMethods.obtainDirectionDetails(
+        pickUpLatLng, dropOffLatLng);
+
+    Navigator.pop(context);
+    print("This is Encoded Points ::");
+    print(details.encodedPoints);
+
+    PolylinePoints polylinePoints = PolylinePoints();
+    List<PointLatLng> decodedPolyLinePointsResult =
+        polylinePoints.decodePolyline(details.encodedPoints);
+
+    polylineCorOrdinates.clear();
+    if (decodedPolyLinePointsResult.isNotEmpty) {
+      decodedPolyLinePointsResult.forEach((PointLatLng pointLatLng) {
+        polylineCorOrdinates
+            .add(LatLng(pointLatLng.latitude, pointLatLng.longitude));
+      });
+    }
+    polyLineSet.clear();
+    setState(() {
+      Polyline polyline = Polyline(
+        color: Colors.pink,
+        polylineId: PolylineId("PolylineID"),
+        jointType: JointType.round,
+        points: polylineCorOrdinates,
+        width: 5,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        geodesic: true,
+      );
+      polyLineSet.add(polyline);
+    });
+
+    LatLngBounds latLngBounds;
+    if (pickUpLatLng.latitude > dropOffLatLng.latitude &&
+        pickUpLatLng.longitude > dropOffLatLng.longitude) {
+      latLngBounds =
+          LatLngBounds(southwest: dropOffLatLng, northeast: pickUpLatLng);
+    } else if (pickUpLatLng.longitude > dropOffLatLng.longitude) {
+      latLngBounds = LatLngBounds(
+          southwest: LatLng(pickUpLatLng.latitude, dropOffLatLng.longitude),
+          northeast: LatLng(dropOffLatLng.latitude, pickUpLatLng.longitude));
+    } else if (pickUpLatLng.latitude > dropOffLatLng.latitude) {
+      latLngBounds = LatLngBounds(
+          southwest: LatLng(dropOffLatLng.latitude, pickUpLatLng.longitude),
+          northeast: LatLng(pickUpLatLng.latitude, dropOffLatLng.longitude));
+    } else {
+      latLngBounds =
+          LatLngBounds(southwest: pickUpLatLng, northeast: dropOffLatLng);
+    }
+
+    newRideGoogleMapController
+        .animateCamera(CameraUpdate.newLatLngBounds(latLngBounds, 70));
+
+    Marker pickUpLocMarker = Marker(
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      position: pickUpLatLng,
+      markerId: MarkerId("pickUpId"),
+    );
+
+    Marker dropOffLocMarker = Marker(
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      position: dropOffLatLng,
+      markerId: MarkerId("dropOffId"),
+    );
+
+    setState(() {
+      markersSet.add(pickUpLocMarker);
+      markersSet.add(dropOffLocMarker);
+    });
+
+    Circle pickUpLocCircle = Circle(
+      fillColor: Colors.blueAccent,
+      center: pickUpLatLng,
+      radius: 12,
+      strokeWidth: 4,
+      strokeColor: Colors.blueAccent,
+      circleId: CircleId("pickUpId"),
+    );
+
+    Circle dropOffLocCircle = Circle(
+      fillColor: Colors.deepPurple,
+      center: dropOffLatLng,
+      radius: 12,
+      strokeWidth: 4,
+      strokeColor: Colors.deepPurple,
+      circleId: CircleId("dropOffId"),
+    );
+
+    setState(() {
+      circleSet.add(pickUpLocCircle);
+      circleSet.add(dropOffLocCircle);
+    });
   }
 }
