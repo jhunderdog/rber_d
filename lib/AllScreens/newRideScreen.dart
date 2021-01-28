@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:drivers_app/AllWidgets/progressDialog.dart';
 import 'package:drivers_app/Assistants/assistantMethods.dart';
+import 'package:drivers_app/Assistants/mapKitAssistant.dart';
 import 'package:drivers_app/Models/rideDetails.dart';
 import 'package:drivers_app/configMaps.dart';
 import 'package:drivers_app/main.dart';
@@ -36,6 +37,9 @@ class _NewRideScreenState extends State<NewRideScreen> {
       LocationOptions(accuracy: LocationAccuracy.bestForNavigation);
   BitmapDescriptor animatingMarkerIcon;
   Position myPostion;
+  String status = "accepted";
+  String durationRide = "";
+  bool isRequestingDirection = false;
 
   @override
   void initState() {
@@ -56,16 +60,19 @@ class _NewRideScreenState extends State<NewRideScreen> {
   }
 
   void getRideLiveLocationupdates() {
+    LatLng oldPos = LatLng(0, 0);
     rideStreamSubscription =
         Geolocator.getPositionStream().listen((Position position) {
       currentPosition = position;
       myPostion = position;
       LatLng mPostion = LatLng(position.latitude, position.longitude);
-
+      var rot = MapKitAssistant.getMarkerRotation(oldPos.latitude,
+          oldPos.longitude, mPostion.latitude, mPostion.longitude);
       Marker animatingMarker = Marker(
         markerId: MarkerId("animating"),
         position: mPostion,
         icon: animatingMarkerIcon,
+        rotation: rot,
         infoWindow: InfoWindow(title: "Current Location"),
       );
       setState(() {
@@ -77,6 +84,14 @@ class _NewRideScreenState extends State<NewRideScreen> {
             .removeWhere((marker) => marker.markerId.value == "animating");
         markersSet.add(animatingMarker);
       });
+      oldPos = mPostion;
+      updateRideDetails();
+      String rideRequestId = widget.rideDetails.ride_request_id;
+      Map locMap = {
+        "latitude": currentPosition.latitude.toString(),
+        "longitude": currentPosition.longitude.toString(),
+      };
+      newRequestsRef.child(rideRequestId).child("driver_location").set(locMap);
     });
   }
 
@@ -133,7 +148,7 @@ class _NewRideScreenState extends State<NewRideScreen> {
                 child: Column(
                   children: [
                     Text(
-                      "10 mins",
+                      durationRide,
                       style: TextStyle(
                           fontSize: 14.0,
                           fontFamily: "Brand Bold",
@@ -358,5 +373,29 @@ class _NewRideScreenState extends State<NewRideScreen> {
       "longitude": currentPosition.longitude.toString(),
     };
     newRequestsRef.child(rideRequestId).child("driver_location").set(locMap);
+  }
+
+  void updateRideDetails() async {
+    if (isRequestingDirection == false) {
+      isRequestingDirection = true;
+      if (myPostion == null) {
+        return;
+      }
+      var posLatLng = LatLng(myPostion.latitude, myPostion.longitude);
+      LatLng destinationLatLng;
+      if (status == "accepted") {
+        destinationLatLng = widget.rideDetails.pickup;
+      } else {
+        destinationLatLng = widget.rideDetails.dropoff;
+      }
+      var directionDetails = await AssistantMethods.obtainDirectionDetails(
+          posLatLng, destinationLatLng);
+      if (directionDetails != null) {
+        setState(() {
+          durationRide = directionDetails.durationText;
+        });
+      }
+      isRequestingDirection = false;
+    }
   }
 }
