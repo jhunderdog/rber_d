@@ -167,7 +167,7 @@ class _NewRideScreenState extends State<NewRideScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Muhammad Ali",
+                          widget.rideDetails.rider_name,
                           style: TextStyle(
                               fontFamily: "Brand Bold", fontSize: 24.0),
                         ),
@@ -193,7 +193,7 @@ class _NewRideScreenState extends State<NewRideScreen> {
                         Expanded(
                           child: Container(
                             child: Text(
-                              "Street#44, Paris, France.",
+                              widget.rideDetails.pickup_address,
                               style: TextStyle(fontSize: 18.0),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -217,7 +217,7 @@ class _NewRideScreenState extends State<NewRideScreen> {
                         Expanded(
                           child: Container(
                             child: Text(
-                              "Street#88, Paris, France.",
+                              widget.rideDetails.dropoff_address,
                               style: TextStyle(fontSize: 18.0),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -418,6 +418,12 @@ class _NewRideScreenState extends State<NewRideScreen> {
       "longitude": currentPosition.longitude.toString(),
     };
     newRequestsRef.child(rideRequestId).child("driver_location").set(locMap);
+
+    driversRef
+        .child(currentfirebaseUser.uid)
+        .child("history")
+        .child(rideRequestId)
+        .set(true);
   }
 
   void updateRideDetails() async {
