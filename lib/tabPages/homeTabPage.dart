@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:drivers_app/AllScreens/registerationScreen.dart';
+import 'package:drivers_app/Assistants/assistantMethods.dart';
 import 'package:drivers_app/Models/drivers.dart';
 import 'package:drivers_app/Notifications/pushNotificationService.dart';
 import 'package:drivers_app/configMaps.dart';
@@ -62,6 +63,7 @@ class _HomeTabPageState extends State<HomeTabPage> {
     PushNotificationService pushNotificationService = PushNotificationService();
     pushNotificationService.initialize(context);
     pushNotificationService.getToken();
+    AssistantMethods.retrieveHistoryInfo(context);
   }
 
   @override
