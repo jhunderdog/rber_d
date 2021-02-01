@@ -1,9 +1,11 @@
+import 'package:drivers_app/Models/history.dart';
 import 'package:drivers_app/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:drivers_app/Assistants/requestAssistant.dart';
 import 'package:drivers_app/DataHandler/appData.dart';
@@ -95,6 +97,7 @@ class AssistantMethods {
   }
 
   static void retrieveHistoryInfo(context) {
+    //retrieve and display Earnings
     driversRef
         .child(currentfirebaseUser.uid)
         .child("earnings")
@@ -105,5 +108,47 @@ class AssistantMethods {
         Provider.of<AppData>(context, listen: false).updateEarnings(earnings);
       }
     });
+    //retrieve history Trip
+    driversRef
+        .child(currentfirebaseUser.uid)
+        .child("history")
+        .once()
+        .then((DataSnapshot dataSnapshot) {
+      if (dataSnapshot.value != null) {
+        //update total number of  trips counts to provider
+        Map<dynamic, dynamic> keys = dataSnapshot.value;
+        int tripCounter = keys.length;
+        Provider.of<AppData>(context, listen: false)
+            .updateTripsCounter(tripCounter);
+        //update trip keys to provider
+        List<String> tripHistoryKeys = [];
+        keys.forEach((key, value) {
+          tripHistoryKeys.add(key);
+        });
+        Provider.of<AppData>(context, listen: false)
+            .updateTripKeys(tripHistoryKeys);
+        obtainTripRequestHistoryData(context);
+      }
+    });
+  }
+
+  static void obtainTripRequestHistoryData(context) {
+    var keys = Provider.of<AppData>(context, listen: false).tripHistoryKeys;
+    for (String key in keys) {
+      newRequestsRef.child(key).once().then((DataSnapshot snapshot) {
+        if (snapshot.value != null) {
+          var history = History.fromSnapshot(snapshot);
+          Provider.of<AppData>(context, listen: false)
+              .updateTripHistoryData(history);
+        }
+      });
+    }
+  }
+
+  static String formatTripDate(String date) {
+    DateTime dateTime = DateTime.parse(date);
+    String formattedDate =
+        "${DateFormat.MMMd().format(dateTime)}, ${DateFormat.y().format(dateTime)} - ${DateFormat.jm().format(dateTime)}";
+    return formattedDate;
   }
 }
