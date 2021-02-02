@@ -97,6 +97,8 @@ class AssistantMethods {
   }
 
   static void retrieveHistoryInfo(context) {
+    //update ratings
+
     //retrieve and display Earnings
     driversRef
         .child(currentfirebaseUser.uid)
