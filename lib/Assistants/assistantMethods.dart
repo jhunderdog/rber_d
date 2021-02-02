@@ -70,7 +70,15 @@ class AssistantMethods {
     double distancTraveledFare = (directionDetails.distanceValue / 60) * 0.20;
     double totalFareAmount = timeTraveledFare + distancTraveledFare;
     // double totalLocalAmount = totalFareAmount * 1100;
-    return totalFareAmount.truncate();
+    if (rideType == "uber-x") {
+      double result = (totalFareAmount.truncate()) * 2.0;
+      return result.truncate();
+    } else if (rideType == "uber-go") {
+      return totalFareAmount.truncate();
+    } else if (rideType == "bike") {
+      double result = (totalFareAmount.truncate()) / 2.0;
+      return result.truncate();
+    }
   }
 
   // static void getCurrentOnlineUserInfo() async {
